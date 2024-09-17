@@ -1,0 +1,8 @@
+{
+    "body": "<section id=\"src\">\n<h1>src<a class=\"headerlink\" href=\"#src\" title=\"Permalink to this heading\">\uf0c1</a></h1>\n<div class=\"toctree-wrapper compound\">\n<ul>\n<li class=\"toctree-l1\"><a class=\"reference internal\" href=\"src.html\">src package</a><ul>\n<li class=\"toctree-l2\"><a class=\"reference internal\" href=\"src.html#submodules\">Submodules</a></li>\n<li class=\"toctree-l2\"><a class=\"reference internal\" href=\"src.html#module-src.basemodel\">src.basemodel module</a></li>\n<li class=\"toctree-l2\"><a class=\"reference internal\" href=\"src.html#module-src.circuits\">src.circuits module</a></li>\n<li class=\"toctree-l2\"><a class=\"reference internal\" href=\"src.html#module-src.continuous\">src.continuous module</a></li>\n<li class=\"toctree-l2\"><a class=\"reference internal\" href=\"src.html#module-src.data\">src.data module</a></li>\n<li class=\"toctree-l2\"><a class=\"reference internal\" href=\"src.html#module-src.feedforward\">src.feedforward module</a></li>\n<li class=\"toctree-l2\"><a class=\"reference internal\" href=\"src.html#module-src.helpers\">src.helpers module</a></li>\n<li class=\"toctree-l2\"><a class=\"reference internal\" href=\"src.html#module-src.noisemodel\">src.noisemodel module</a></li>\n<li class=\"toctree-l2\"><a class=\"reference internal\" href=\"src.html#module-src.rewinding\">src.rewinding module</a></li>\n<li class=\"toctree-l2\"><a class=\"reference internal\" href=\"src.html#module-src\">Module contents</a></li>\n</ul>\n</li>\n</ul>\n</div>\n</section>\n",
+    "title": "src",
+    "sourcename": "modules.rst.txt",
+    "current_page_name": "modules",
+    "toc": "<ul>\n<li><a class=\"reference internal\" href=\"#\">src</a></li>\n</ul>\n",
+    "page_source_suffix": ".rst"
+}
