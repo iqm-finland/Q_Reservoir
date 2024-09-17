@@ -511,10 +511,12 @@ Mean Absolute Percentage Error, Normalized Root Mean Squared Error.</p>
 </div>
 </p></li>
 <li><p><strong>qctype</strong> (<em>str</em>) – <div class="line-block">
-<div class="line">ising, ising_nn, ising_ladder, random, random_hpcnot, random_clifford, random_ht, jiri, spread_input, hcnot, circularcnot, downup, efficientsu2, swapstack, empty, mockqc.</div>
+<div class="line">ising, ising_nn, ising_ladder, ising_natural, ising_natural_nn, ising_natural_ladder, ising_hadamard, ising_hadamard_nn, ising_hadamard_ladder random, random_hpcnot, random_clifford, random_ht, jiri, spread_input, hcnot, circularcnot, downup, efficientsu2, swapstack, empty, mockqc.</div>
 <div class="line">ising: fully connected transverse field ising model from <code class="xref py py-func docutils literal notranslate"><span class="pre">circuits.ising_circuit()</span></code>.</div>
 <div class="line">ising_nn: nearest neighbour connection</div>
 <div class="line">ising_ladder: ladder up and down</div>
+<div class="line">ising_natural (prefix): use zz two qubit gates and x as single qubit rotations.</div>
+<div class="line">ising_hadamard (prefix): append hadamards to the start and end of the zz / x gates, so that it reproduces the original ising model.</div>
 <div class="line-block">
 <div class="line">ising_t (float): time in e^-iHt</div>
 <div class="line">ising_jmax (float): J in (-jmax, jmax) (spin-spin couplings)</div>
@@ -527,6 +529,7 @@ Mean Absolute Percentage Error, Normalized Root Mean Squared Error.</p>
 </p></li>
 <li><p><strong>shots</strong> (<em>int</em><em>) </em><em>= 2^13</em><em> (</em><em>8192</em>) – number of shots for measurement.</p></li>
 <li><p><strong>sim</strong> (<em>str</em>) – simulator for quantum circuit.
+Can be an “IQMBackend” object for either simulation or actual experiment.
 ‘aer_simulator’ for a noiseless simulation.
 Can be anything in
 <code class="code docutils literal notranslate"><span class="pre">available_backends</span> <span class="pre">=</span> <span class="pre">{b.name():b.configuration().n_qubits</span> <span class="pre">for</span> <span class="pre">b</span> <span class="pre">in</span> <span class="pre">FakeProvider().backends()}</span></code> for a noisy circuit.
@@ -875,6 +878,82 @@ Studying quantum algorithms for particle track reconstruction in the LUXE experi
 <div class="line">’up_ladder’: Rxx ladder from qubit 0 to qubit max, and Rz.</div>
 <div class="line">’up_down_ladder’: Rxx ladder from qubit 0 to qubit max, Rz, Rxx ladder from qubit max to qubit 0.</div>
 <div class="line">else: Rxx on all pairwise connections, and Rz.</div>
+</div>
+</p></li>
+<li><p><strong>rseed</strong> (<em>int</em>) – random seed for picking J, W</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>QuantumCircuit</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.circuits.ising_circuit_natural">
+<span class="sig-prename descclassname"><span class="pre">src.circuits.</span></span><span class="sig-name descname"><span class="pre">ising_circuit_natural</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nqubits</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rseed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jpositive</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wpositive</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.circuits.ising_circuit_natural" title="Permalink to this definition"></a></dt>
+<dd><p>Transverse field ising model, adjusted to fit our natural 2-qubit gate.
+‘Also has two possible <code class="docutils literal notranslate"><span class="pre">adjustment</span> <span class="pre">methods</span></code>, to allow prevent the ZZ acting trivially.</p>
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}\begin{split}H = J Z Z + (h + D) X \\\end{split}\\U = e^{-iHt} ~ e^{-iJZZt}e^{-i(h+W)Xt}  = RX(2(h+W)t)RZZ(2Jt)\end{aligned}\end{align} \]</div>
+<p><a class="reference external" href="https://arxiv.org/pdf/2103.05348.pdf">https://arxiv.org/pdf/2103.05348.pdf</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>nqubits</strong> (<em>int</em>) – number of qubits</p></li>
+<li><p><strong>t</strong> (<em>float</em>) – time in e^-iHt</p></li>
+<li><p><strong>h</strong> (<em>float</em>) – fixed magnetic field</p></li>
+<li><p><strong>jmax</strong> (<em>float</em>) – spin-spin coupling J in (-jmax, jmax)</p></li>
+<li><p><strong>jpositive</strong> (<em>bool</em>) – J in (0, jmax)</p></li>
+<li><p><strong>wmax</strong> (<em>float</em>) – onsite disorder strength W in (-wmax, wmax)</p></li>
+<li><p><strong>wpositive</strong> (<em>bool</em>) – D in (0, jmax)</p></li>
+<li><p><strong>random</strong> (<em>bool</em>) – if false, J=jmax and W=wmax</p></li>
+<li><p><strong>mode</strong> (<em>str</em>) – <div class="line-block">
+<div class="line">‘nn’: Rxx on nearest neighbour, and Rz.</div>
+<div class="line">’up_ladder’: Rxx ladder from qubit 0 to qubit max, and Rz.</div>
+<div class="line">’up_down_ladder’: Rxx ladder from qubit 0 to qubit max, Rz, Rxx ladder from qubit max to qubit 0.</div>
+<div class="line">else: Rxx on all pairwise connections, and Rz.</div>
+</div>
+</p></li>
+<li><p><strong>rseed</strong> (<em>int</em>) – random seed for picking J, W</p></li>
+<li><p><strong>adjustment</strong> (<em>str</em>) – <div class="line-block">
+<div class="line">‘Hadamard’ : Performs a Hadamard on each gate at the start.</div>
+<div class="line">’Swap Order’: Performs 1 qubit then two qubit gates.</div>
+<div class="line">else -&gt; Hadamard.</div>
+</div>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>QuantumCircuit</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.circuits.ising_circuit_naturalH">
+<span class="sig-prename descclassname"><span class="pre">src.circuits.</span></span><span class="sig-name descname"><span class="pre">ising_circuit_naturalH</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nqubits</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rseed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">jpositive</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wpositive</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.circuits.ising_circuit_naturalH" title="Permalink to this definition"></a></dt>
+<dd><p>Transverse field ising model. Each unitary is sandwiched with a round of Hadamards, to avoid
+trivial actions.</p>
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}\begin{split}H = J Z Z + (h + D) X \\\end{split}\\U = e^{-iHt} ~ e^{-iJZZt} e^{-i(h+W)Xt} = Rzz(2Jt) Rx(2(h+W)t)\end{aligned}\end{align} \]</div>
+<p><a class="reference external" href="https://arxiv.org/pdf/2103.05348.pdf">https://arxiv.org/pdf/2103.05348.pdf</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>nqubits</strong> (<em>int</em>) – number of qubits</p></li>
+<li><p><strong>t</strong> (<em>float</em>) – time in e^-iHt</p></li>
+<li><p><strong>h</strong> (<em>float</em>) – fixed magnetic field</p></li>
+<li><p><strong>jmax</strong> (<em>float</em>) – spin-spin coupling J in (-jmax, jmax)</p></li>
+<li><p><strong>jpositive</strong> (<em>bool</em>) – J in (0, jmax)</p></li>
+<li><p><strong>wmax</strong> (<em>float</em>) – onsite disorder strength W in (-wmax, wmax)</p></li>
+<li><p><strong>wpositive</strong> (<em>bool</em>) – D in (0, jmax)</p></li>
+<li><p><strong>random</strong> (<em>bool</em>) – if false, J=jmax and W=wmax</p></li>
+<li><p><strong>mode</strong> (<em>str</em>) – <div class="line-block">
+<div class="line">‘nn’: Rzz on nearest neighbour, and Rz.</div>
+<div class="line">’up_ladder’: Rzz ladder from qubit 0 to qubit max, and Rz.</div>
+<div class="line">’up_down_ladder’: Rzz ladder from qubit 0 to qubit max, Rx, Rzz ladder from qubit max to qubit 0.</div>
+<div class="line">else: Rzz on all pairwise connections, and Rz.</div>
 </div>
 </p></li>
 <li><p><strong>rseed</strong> (<em>int</em>) – random seed for picking J, W</p></li>
@@ -1433,7 +1512,7 @@ y: list[np.array] (episodes, steps, dim_y)</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="src.data.DataSource.data_path">
-<span class="sig-name descname"><span class="pre">data_path</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'/Users/andreas-burger/RLCode/quantum-reinforcement-learning/qrc_surrogate/data/sprungversuche.h5'</span></em><a class="headerlink" href="#src.data.DataSource.data_path" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">data_path</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'/home/thomascope/Python_Proj/Experiment/data/sprungversuche.h5'</span></em><a class="headerlink" href="#src.data.DataSource.data_path" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -1478,7 +1557,7 @@ y: list[np.array] (episodes, steps, dim_y)</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="src.data.DataSource.module_path">
-<span class="sig-name descname"><span class="pre">module_path</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'/Users/andreas-burger/RLCode/quantum-reinforcement-learning/qrc_surrogate'</span></em><a class="headerlink" href="#src.data.DataSource.module_path" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">module_path</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'/home/thomascope/Python_Proj/Experiment'</span></em><a class="headerlink" href="#src.data.DataSource.module_path" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -2029,6 +2108,232 @@ Excludes input encoding and measurements.</p>
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="src.rewinding.QRewindingRC_Single_Use_QPU">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">src.rewinding.</span></span><span class="sig-name descname"><span class="pre">QRewindingRC_Single_Use_QPU</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">max_batch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strip_metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_layout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_tries</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">calibration_set_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qubits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduced_coupling_map</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">total_req</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_partial_meas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_instead_meas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lookback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lookback_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">restarting</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mend</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_y_to_input</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">washout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preloading</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'projection'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmeas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reseti</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resetm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nenccopies</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xyoffset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">set_past_y_to_0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_true_y_in_val</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rseed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_x_as_feature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nyfuture</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delete_future_y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fitter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'sklearn'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">regression_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'regression'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">regression_alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">regression_l1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">poly_degree</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nqubits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qctype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ising'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qinit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'none'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nlayers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ftype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enctype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'angle'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encaxes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">measaxes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encangle</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8192</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ising_t</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ising_jmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ising_h</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ising_wmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ising_random</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ising_jpositive</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ising_wpositive</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'aer_simulator'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sim_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'statevector'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sim_precision</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'single'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.rewinding.QRewindingRC_Single_Use_QPU" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#src.basemodel.StepwiseModelBase" title="src.basemodel.StepwiseModelBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">StepwiseModelBase</span></code></a>, <a class="reference internal" href="#src.continuous.QContinuousRC" title="src.continuous.QContinuousRC"><code class="xref py py-class docutils literal notranslate"><span class="pre">QContinuousRC</span></code></a></p>
+<p>Variant of the QRewindingRC which maps each additional input onto a fresh set of qubits. Designed to prevent mid-circuit reset/measurement.
+Designed to run on a true Quantum Computer.</p>
+<p>Takes x(t) (action) and previous ouput y(t-1) as input.
+Repeats past n steps and the current step, then measures all qubits.</p>
+<p>During training the model takes all x(t) as given and uses the correct y(t-1) from the data.
+During inference (validating) uses the previous predicted output ~ y(t-1) and x(t) can depend on the previous prediction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>nmeas</strong> (<em>int</em>) – Number of qubits to be measured at every rewinded (non-final) step.
+A final step all qubits are measured.</p></li>
+<li><p><strong>reset_instead_meas</strong> (<em>bool</em>) – Reset qubits instead of measuring at every rewinded (non-final) step.</p></li>
+<li><p><strong>resetm</strong> (<em>bool</em>) – Reset qubits after measurement at every rewinded (non-final) step.</p></li>
+<li><p><strong>use_partial_meas</strong> (<em>bool</em>) – If partial measurements at every rewinded (non-final) step are to be used for features.
+Set to ‘False’ if ‘reset_instead_meas’ is ‘True’.</p></li>
+<li><p><strong>lookback</strong> (<em>int</em>) – Number of steps to be rewinded at every step.</p></li>
+<li><p><strong>restarting</strong> (<em>bool</em>) – If to restart at every step (rewind to the beginning).</p></li>
+<li><p><strong>lookback_max</strong> (<em>bool</em>) – If restarting is True, this is ignored (and set to True).
+If True, the number of steps to be rewinded is the maximum possible (all previous steps),
+but never goes further back than step 0.
+If False, steps before t=0 are possibly repeated as well, with input values depending on <code class="code docutils literal notranslate"><span class="pre">set_past_y_to_0</span></code>.</p></li>
+<li><p><strong>add_y_to_input</strong> (<em>bool</em>) – If to use previous y(t) in addition to x(t) as input.</p></li>
+<li><p><strong>file_name'</strong> (<em>str</em>) – Name of the resulting parquet file saved in “experiments”. Defaults to model_name.</p></li>
+</ul>
+</dd>
+</dl>
+<p>Additional arguments are passed to <a class="reference internal" href="#src.basemodel.StepwiseModelBase" title="src.basemodel.StepwiseModelBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">src.basemodel.StepwiseModelBase</span></code></a>
+and <code class="xref py py-class docutils literal notranslate"><span class="pre">src.continuous.QOnlineReservoir</span></code>.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="src.rewinding.QRewindingRC_Single_Use_QPU._add_input_to_qc">
+<span class="sig-name descname"><span class="pre">_add_input_to_qc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angles</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#src.rewinding.QRewindingRC_Single_Use_QPU._add_input_to_qc" title="Permalink to this definition"></a></dt>
+<dd><p>Encode input onto circuit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qc</strong> (<em>QuantumCircuit</em>) – circuit to add input to</p></li>
+<li><p><strong>angles</strong> (<em>ndarray</em><em>(</em><em>steps</em><em>, </em><em>dimx</em><em>)</em>) – encoded input data</p></li>
+<li><p><strong>step</strong> (<em>int</em>) – current step. Used to index angles, 0 indexed.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="src.rewinding.QRewindingRC_Single_Use_QPU._get_input_t">
+<span class="sig-name descname"><span class="pre">_get_input_t</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xe_lookback</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ye_lookback</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_pred</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.rewinding.QRewindingRC_Single_Use_QPU._get_input_t" title="Permalink to this definition"></a></dt>
+<dd><p>Every step is a mini-episode:
+At every step, repeat past n steps + current step.
+At the current step, feed in current action x(t) and previous ouput y(t-1).
+At the past n’th step, feed in action x(t-n) and previous output y(t-n-1).
+In training previous outpus y are the true values from the data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(lookback, dimxqc)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>angles (np.ndarray)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="src.rewinding.QRewindingRC_Single_Use_QPU._get_step_features">
+<span class="sig-name descname"><span class="pre">_get_step_features</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">angles</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsteps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">saveqc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.rewinding.QRewindingRC_Single_Use_QPU._get_step_features" title="Permalink to this definition"></a></dt>
+<dd><p>Features for this step, provided the input angles.
+At every step, the circuit consists of lookback+1 steps</p>
+<p>angles (np.ndarray): (nsteps, dimxqc)
+nsteps (int): how many previous steps should be repeated (including the current step).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>features for this step (1, dimf)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="src.rewinding.QRewindingRC_Single_Use_QPU._set_unitary_and_meas">
+<span class="sig-name descname"><span class="pre">_set_unitary_and_meas</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#src.rewinding.QRewindingRC_Single_Use_QPU._set_unitary_and_meas" title="Permalink to this definition"></a></dt>
+<dd><p>Define unitary quantum circuit at every timestep.
+Sets self.unistep.
+Excludes input encoding and measurements.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="src.rewinding.QRewindingRC_Single_Use_QPU._t_input_to_t_features">
+<span class="sig-name descname"><span class="pre">_t_input_to_t_features</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_pred</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.rewinding.QRewindingRC_Single_Use_QPU._t_input_to_t_features" title="Permalink to this definition"></a></dt>
+<dd><p>Features of a step, given the input.</p>
+<p>Calls angle_encoding and get_step_features.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="src.rewinding.QRewindingRC_Single_Use_QPU.model_name">
+<span class="sig-name descname"><span class="pre">model_name</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'rewinding_batch'</span></em><a class="headerlink" href="#src.rewinding.QRewindingRC_Single_Use_QPU.model_name" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="src.rewinding.QRewindingRC_Single_Use_QPU.train">
+<span class="sig-name descname"><span class="pre">train</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#src.rewinding.QRewindingRC_Single_Use_QPU.train" title="Permalink to this definition"></a></dt>
+<dd><p>Train the model on the training data for all episodes.
+Run model for all steps and collect features.
+If model takes in y as input, then use true y.
+After all steps and episodes, train linear fitter.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="src.rewinding.QRewindingRC_Single_Use_QPU.val">
+<span class="sig-name descname"><span class="pre">val</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">infmode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'data'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nepisodes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.rewinding.QRewindingRC_Single_Use_QPU.val" title="Permalink to this definition"></a></dt>
+<dd><p>Val for all episodes.</p>
+<p>Run model for one step, predict y(t+1) from features.
+If model takes in y as input, then use predicted (possibly wrong) y.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="src.rewinding.QRewindingRC_Single_Use_Sim">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">src.rewinding.</span></span><span class="sig-name descname"><span class="pre">QRewindingRC_Single_Use_Sim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">use_partial_meas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_instead_meas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lookback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lookback_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">restarting</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mend</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_y_to_input</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">washout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preloading</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'projection'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmeas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reseti</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resetm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nenccopies</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xyoffset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">set_past_y_to_0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_true_y_in_val</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rseed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_x_as_feature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nyfuture</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delete_future_y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fitter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'sklearn'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">regression_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'regression'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">regression_alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">regression_l1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">poly_degree</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nqubits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qctype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ising'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qinit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'none'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nlayers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ftype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enctype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'angle'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encaxes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">measaxes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encangle</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8192</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ising_t</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ising_jmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ising_h</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ising_wmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ising_random</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ising_jpositive</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ising_wpositive</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'aer_simulator'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sim_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'statevector'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sim_precision</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'single'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.rewinding.QRewindingRC_Single_Use_Sim" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#src.basemodel.StepwiseModelBase" title="src.basemodel.StepwiseModelBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">StepwiseModelBase</span></code></a>, <a class="reference internal" href="#src.continuous.QContinuousRC" title="src.continuous.QContinuousRC"><code class="xref py py-class docutils literal notranslate"><span class="pre">QContinuousRC</span></code></a></p>
+<p>Variant of the QRewindingRC which maps each additional input onto a fresh set of qubits. Designed to prevent mid-circuit reset/measurement.
+Only for use with Fake Backends: for use on a real QPU, see: QRewindingRC_Single_Use_QPU</p>
+<p>Takes x(t) (action) and previous ouput y(t-1) as input.
+Repeats past n steps and the current step, then measures all qubits.</p>
+<p>During training the model takes all x(t) as given and uses the correct y(t-1) from the data.
+During inference (validating) uses the previous predicted output ~ y(t-1) and x(t) can depend on the previous prediction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>nmeas</strong> (<em>int</em>) – Number of qubits to be measured at every rewinded (non-final) step.
+A final step all qubits are measured.</p></li>
+<li><p><strong>reset_instead_meas</strong> (<em>bool</em>) – Reset qubits instead of measuring at every rewinded (non-final) step.</p></li>
+<li><p><strong>resetm</strong> (<em>bool</em>) – Reset qubits after measurement at every rewinded (non-final) step.</p></li>
+<li><p><strong>use_partial_meas</strong> (<em>bool</em>) – If partial measurements at every rewinded (non-final) step are to be used for features.
+Set to ‘False’ if ‘reset_instead_meas’ is ‘True’.</p></li>
+<li><p><strong>lookback</strong> (<em>int</em>) – Number of steps to be rewinded at every step.</p></li>
+<li><p><strong>restarting</strong> (<em>bool</em>) – If to restart at every step (rewind to the beginning).</p></li>
+<li><p><strong>lookback_max</strong> (<em>bool</em>) – If restarting is True, this is ignored (and set to True).
+If True, the number of steps to be rewinded is the maximum possible (all previous steps),
+but never goes further back than step 0.
+If False, steps before t=0 are possibly repeated as well, with input values depending on <code class="code docutils literal notranslate"><span class="pre">set_past_y_to_0</span></code>.</p></li>
+<li><p><strong>add_y_to_input</strong> (<em>bool</em>) – If to use previous y(t) in addition to x(t) as input.</p></li>
+<li><p><strong>file_name'</strong> (<em>str</em>) – Name of the resulting parquet file saved in “experiments”. Defaults to model_name.</p></li>
+<li><p><strong>'max_batch'</strong> (<em>int</em>) – How many circuits will be submitted to the computer in one job.</p></li>
+<li><p><strong>'max_tries'</strong> (<em>int</em>) – How many times the the code will try to resubmit a failed job.</p></li>
+<li><p><strong>'calibration_set_id'</strong> (<em>str</em>) – calibration information used for the jobs.</p></li>
+<li><p><strong>'qubits'</strong> (<em>List</em>) – List of qubit names to used : e.g. [‘QB1’,’QB2’…]</p></li>
+<li><p><strong>'reduced_coupling_map'</strong> (<em>Qiskit Coupling Map</em>) – Gives the available 2-qubit operations possible. Generated by default from backend.</p></li>
+<li><p><strong>'initial_layout'</strong> (<em>list</em>) – A list of indices mapping each qubit within the qiskit circuit to that on the chip</p></li>
+<li><p><strong>'total_req'</strong> (<em>int</em>) – How many qubits required to run the circuit. If not set, defaults to the max the backend has - this may cause transpilation errors.</p></li>
+</ul>
+</dd>
+</dl>
+<p>Additional arguments are passed to <a class="reference internal" href="#src.basemodel.StepwiseModelBase" title="src.basemodel.StepwiseModelBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">src.basemodel.StepwiseModelBase</span></code></a>
+and <code class="xref py py-class docutils literal notranslate"><span class="pre">src.continuous.QOnlineReservoir</span></code>.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="src.rewinding.QRewindingRC_Single_Use_Sim._add_input_to_qc">
+<span class="sig-name descname"><span class="pre">_add_input_to_qc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angles</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#src.rewinding.QRewindingRC_Single_Use_Sim._add_input_to_qc" title="Permalink to this definition"></a></dt>
+<dd><p>Encode input onto circuit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qc</strong> (<em>QuantumCircuit</em>) – circuit to add input to</p></li>
+<li><p><strong>angles</strong> (<em>ndarray</em><em>(</em><em>steps</em><em>, </em><em>dimx</em><em>)</em>) – encoded input data</p></li>
+<li><p><strong>step</strong> (<em>int</em>) – current step. Used to index angles, 0 indexed.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="src.rewinding.QRewindingRC_Single_Use_Sim._get_input_t">
+<span class="sig-name descname"><span class="pre">_get_input_t</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xe_lookback</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ye_lookback</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_pred</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.rewinding.QRewindingRC_Single_Use_Sim._get_input_t" title="Permalink to this definition"></a></dt>
+<dd><p>Every step is a mini-episode:
+At every step, repeat past n steps + current step.
+At the current step, feed in current action x(t) and previous ouput y(t-1).
+At the past n’th step, feed in action x(t-n) and previous output y(t-n-1).
+In training previous outpus y are the true values from the data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(lookback, dimxqc)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>angles (np.ndarray)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="src.rewinding.QRewindingRC_Single_Use_Sim._get_step_features">
+<span class="sig-name descname"><span class="pre">_get_step_features</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">angles</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsteps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">saveqc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.rewinding.QRewindingRC_Single_Use_Sim._get_step_features" title="Permalink to this definition"></a></dt>
+<dd><p>Features for this step, provided the input angles.
+At every step, the circuit consists of lookback+1 steps</p>
+<p>angles (np.ndarray): (nsteps, dimxqc)
+nsteps (int): how many previous steps should be repeated (including the current step).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>features for this step (1, dimf)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="src.rewinding.QRewindingRC_Single_Use_Sim._set_unitary_and_meas">
+<span class="sig-name descname"><span class="pre">_set_unitary_and_meas</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#src.rewinding.QRewindingRC_Single_Use_Sim._set_unitary_and_meas" title="Permalink to this definition"></a></dt>
+<dd><p>Define unitary quantum circuit at every timestep.
+Sets self.unistep.
+Excludes input encoding and measurements.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="src.rewinding.QRewindingRC_Single_Use_Sim._t_input_to_t_features">
+<span class="sig-name descname"><span class="pre">_t_input_to_t_features</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_pred</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.rewinding.QRewindingRC_Single_Use_Sim._t_input_to_t_features" title="Permalink to this definition"></a></dt>
+<dd><p>Features of a step, given the input.</p>
+<p>Calls angle_encoding and get_step_features.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="src.rewinding.QRewindingRC_Single_Use_Sim.model_name">
+<span class="sig-name descname"><span class="pre">model_name</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'rewinding_rc_2'</span></em><a class="headerlink" href="#src.rewinding.QRewindingRC_Single_Use_Sim.model_name" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="src.rewinding.QRewindingStatevectorRC">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">src.rewinding.</span></span><span class="sig-name descname"><span class="pre">QRewindingStatevectorRC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim_sampling</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'multinomial'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_partial_meas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_instead_meas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lookback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_y_to_input</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">restarting</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mend</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">set_past_y_to_0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_true_y_in_val</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">washout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preloading</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'projection'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmeas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reseti</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resetm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lookback_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rseed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_x_as_feature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nyfuture</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delete_future_y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fitter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'sklearn'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">regression_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'regression'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">regression_alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">regression_l1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">poly_degree</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nqubits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qctype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ising'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qinit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'none'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nlayers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ftype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enctype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'angle'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encaxes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nenccopies</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encangle</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">measaxes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8192</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ising_t</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ising_jmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ising_h</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ising_wmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ising_random</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ising_jpositive</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ising_wpositive</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'aer_simulator'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sim_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'statevector'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sim_precision</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'double'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.rewinding.QRewindingStatevectorRC" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="#src.rewinding.QRewindingRC" title="src.rewinding.QRewindingRC"><code class="xref py py-class docutils literal notranslate"><span class="pre">QRewindingRC</span></code></a></p>
@@ -2114,6 +2419,11 @@ nsteps (int): how many previous steps should be repeated (including the current 
 <dd></dd></dl>
 
 </dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.rewinding.citemgetter">
+<span class="sig-prename descclassname"><span class="pre">src.rewinding.</span></span><span class="sig-name descname"><span class="pre">citemgetter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">string</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.rewinding.citemgetter" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
 
 </section>
 <section id="module-src">

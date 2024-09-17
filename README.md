@@ -42,26 +42,30 @@ conda env create --name envrl --file=env_rl.yml
 conda activate envrl
 ```
 
-## Setup: Conda (Windows)
+## Setup: Conda (Windows or Linux)
 
 ```bash
 conda create --name "envrl" python=3.11
 conda activate envrl
 
-conda install jupyter notebook matplotlib ipykernel seaborn -y
-conda install -c anaconda ipython statsmodels scikit-learn pytables sphinx -y
-conda install -c conda-forge ipympl gymnasium tqdm fastparquet sphinx-rtd-theme readthedocs-sphinx-ext sphinxcontrib-napoleon -y
-conda install -c pytorch pytorch -y
+conda install jupyter==1.0.0 notebook=6.5.4 matplotlib=3.7.1 ipykernel=6.19.2 seaborn=0.12.2 -y
+conda install -c anaconda ipython=8.12.0 statsmodels=0.13.5 scikit-learn=1.2.2 pytables=3.8.0 sphinx=5.0.2 -y
+conda install -c conda-forge ipympl=0.9.3 gymnasium=0.26.3 tqdm=4.65.0 fastparquet=2023.4.0 sphinx-rtd-theme=1.2.2 readthedocs-sphinx-ext=2.2.1 sphinxcontrib-napoleon=0.7 -y
+conda install -c pytorch pytorch=2.0.1 -y
 
 conda install pip
-# python -m pip install qiskit 'qiskit[providers]' # for MacOS
-python -m pip install qiskit qiskit[providers]
-python -m pip install qiskit_ibm_provider
-# python -m pip install 'qiskit[visualization]' # for MacOS
-python -m pip install qiskit[visualization]
+python -m pip install qiskit==0.43.0 qiskit[providers]
+python -m pip install qiskit==0.43.0 qiskit[visualization]
 ```
 
 ---
+
+## Setup: Windows (alternative).
+
+It may be the case that following the above instructions do not allow the code to run successfully;
+In this case,the recommended approach is to install Windows Subsystem for Linux and Ubuntu (via the Microsoft store). One can then use e.g. VSCode with the WSL extension.
+
+
 
 ## What I did (for reproducability)
 

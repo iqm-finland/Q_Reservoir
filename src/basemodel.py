@@ -10,6 +10,9 @@ from qiskit_aer.noise import NoiseModel
 from qiskit.opflow import I, X, Y, Z
 import qiskit_aer
 
+#For running on IQM simulations/hardware.
+from iqm.qiskit_iqm.iqm_backend import IQMBackendBase
+
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -29,7 +32,7 @@ sys.path.insert(1, os.path.abspath('..')) # module: qrc_surrogate
 from src.data import DataSource
 from src.helpers import mse, mape, nrmse, correlation, unnormalize
 from src.circuits import \
-    random_circuit, random_clifford_circuit, random_ht_circuit, ising_circuit, \
+    random_circuit, random_clifford_circuit, random_ht_circuit, ising_circuit, ising_circuit_natural, ising_circuit_naturalH, \
     jiri_circuit, spread_circuit, hcnot_circuit, \
     circularcnot_circuit, efficientsu2_circuit, downup_circuit, fake_circuit, random_hpcnot_circuit
 from src.noisemodel import thermal_model
@@ -391,7 +394,7 @@ class PredictionModelBase:
         """
         params = inspect.getfullargspec(self.__init__).args[1:] 
         params = set(params) # only keep each item once
-        dictstring = ''.join(f'\'{p}\': self.{p}, ' for p in params)
+        dictstring = ''.join(f'\'{p}\': self.{p}, ' if p!='sim' else f'\'{p}\': str(self.{p}), ' for p in params)
         dictstring = '{' + dictstring + '}'
         paramsdict = eval(dictstring)
         # paramsdict.update(self.kwargs)
@@ -739,10 +742,12 @@ class QuantumBase:
             | 4: four qubit expectations <zzzz> 
             |   (dimf = (n choose 4)). also includes 1, 2, and 3.
         qctype (str): 
-            | ising, ising_nn, ising_ladder, random, random_hpcnot, random_clifford, random_ht, jiri, spread_input, hcnot, circularcnot, downup, efficientsu2, swapstack, empty, mockqc.
+            | ising, ising_nn, ising_ladder, ising_natural, ising_natural_nn, ising_natural_ladder, ising_hadamard, ising_hadamard_nn, ising_hadamard_ladder random, random_hpcnot, random_clifford, random_ht, jiri, spread_input, hcnot, circularcnot, downup, efficientsu2, swapstack, empty, mockqc.
             | ising: fully connected transverse field ising model from :func:`circuits.ising_circuit()`.
             | ising_nn: nearest neighbour connection
             | ising_ladder: ladder up and down
+            | ising_natural (prefix): use zz two qubit gates and x as single qubit rotations.
+            | ising_hadamard (prefix): append hadamards to the start and end of the zz / x gates, so that it reproduces the original ising model.
             |   ising_t (float): time in e^-iHt
             |   ising_jmax (float): J in (-jmax, jmax) (spin-spin couplings)
             |   ising_wmax (float): D in (-wmax, wmax) (disorder strength)
@@ -753,6 +758,7 @@ class QuantumBase:
             number of shots for measurement.
         sim (str) = 'aer_simulator':
             simulator for quantum circuit. 
+            Can be an "IQMBackend" object for either simulation or actual experiment.
             'aer_simulator' for a noiseless simulation.
             Can be anything in
             :code:`available_backends = {b.name():b.configuration().n_qubits for b in FakeProvider().backends()}` for a noisy circuit. 
@@ -814,12 +820,20 @@ class QuantumBase:
         self.encaxes = encaxes 
         self.shots = shots
         self.nlayers = nlayers
+
+        if isinstance(sim,IQMBackendBase):
+            self.backend=sim
+            print('IQM')
+            print(self.backend)
+
         # --
-        if type(sim) == qiskit_aer.backends.aer_simulator.AerSimulator or sim == 'aer_simulator':
+        elif type(sim) == qiskit_aer.backends.aer_simulator.AerSimulator or sim == 'aer_simulator':
             # noiseless
             t1 = float('inf')
             sim_method = 'statevector'
             self.backend = AerSimulator(method = sim_method)
+            print('Aer')
+            print(self.backend)
         elif sim == 'thermal':
             sim_method = 'density_matrix'
             noise_model = thermal_model(
@@ -836,15 +850,31 @@ class QuantumBase:
             noise_model = NoiseModel.from_backend(backend)
             self.backend = AerSimulator(method = sim_method, noise_model = noise_model)
         else:
+            print('else')
             t1 = -1
             sim_method = 'density_matrix'
             noise_model = NoiseModel.from_backend(sim)
             self.backend = AerSimulator(method = sim_method, noise_model = noise_model)
-        self.t1 = t1
-        self.sim_method = sim_method
-        self.sim = sim
-        self.sim_precision = sim_precision
-        self.backend.set_options(precision=sim_precision)
+        try:
+            self.t1 = t1
+        except:
+            None
+        try:
+            self.sim_method = sim_method
+        except:
+            None
+        try:
+            self.sim = sim
+        except:
+            None
+        try:
+            self.sim_precision = sim_precision
+            self.backend.set_options(precision=sim_precision)
+        except:
+            None
+        
+        
+
         # set during calculation
         self.quni = None # list of qubits to apply unitary to
         self.qin = None # list of qubits which encode x
@@ -990,6 +1020,82 @@ class QuantumBase:
                     wpositive = self.ising_wpositive,
                     rseed = self.rseed, 
                 )
+            case 'ising_natural':
+                self.unistep = ising_circuit_natural(
+                    nqubits = len(self.quni), 
+                    t = self.ising_t, 
+                    jmax = self.ising_jmax, 
+                    h = self.ising_h, 
+                    wmax = self.ising_wmax, 
+                    random = self.ising_random,
+                    jpositive = self.ising_jpositive,
+                    wpositive = self.ising_wpositive,
+                    rseed = self.rseed, 
+                )
+            case 'ising_natural_nn':
+                self.unistep = ising_circuit_natural(
+                    nqubits = len(self.quni), 
+                    t = self.ising_t, 
+                    jmax = self.ising_jmax, 
+                    h = self.ising_h, 
+                    mode = 'nn',
+                    wmax = self.ising_wmax, 
+                    random = self.ising_random,
+                    jpositive = self.ising_jpositive,
+                    wpositive = self.ising_wpositive,
+                    rseed = self.rseed, 
+                )
+            case 'ising_natural_ladder':
+                self.unistep = ising_circuit_natural(
+                    nqubits = len(self.quni), 
+                    t = self.ising_t, 
+                    jmax = self.ising_jmax, 
+                    h = self.ising_h, 
+                    wmax = self.ising_wmax, 
+                    mode = 'ladder',
+                    random = self.ising_random,
+                    jpositive = self.ising_jpositive,
+                    wpositive = self.ising_wpositive,
+                    rseed = self.rseed, 
+                )
+            case 'ising_hadamard':
+                self.unistep = ising_circuit_naturalH(
+                    nqubits = len(self.quni), 
+                    t = self.ising_t, 
+                    jmax = self.ising_jmax, 
+                    h = self.ising_h, 
+                    wmax = self.ising_wmax, 
+                    random = self.ising_random,
+                    jpositive = self.ising_jpositive,
+                    wpositive = self.ising_wpositive,
+                    rseed = self.rseed, 
+                )
+            case 'ising_hadamard_nn':
+                self.unistep = ising_circuit_naturalH(
+                    nqubits = len(self.quni), 
+                    t = self.ising_t, 
+                    jmax = self.ising_jmax, 
+                    h = self.ising_h, 
+                    mode = 'nn',
+                    wmax = self.ising_wmax, 
+                    random = self.ising_random,
+                    jpositive = self.ising_jpositive,
+                    wpositive = self.ising_wpositive,
+                    rseed = self.rseed, 
+                )
+            case 'ising_hadamard_ladder':
+                self.unistep = ising_circuit_naturalH(
+                    nqubits = len(self.quni), 
+                    t = self.ising_t, 
+                    jmax = self.ising_jmax, 
+                    h = self.ising_h, 
+                    wmax = self.ising_wmax, 
+                    mode = 'ladder',
+                    random = self.ising_random,
+                    jpositive = self.ising_jpositive,
+                    wpositive = self.ising_wpositive,
+                    rseed = self.rseed, 
+                )
             case 'empty':
                 self.unistep = QuantumCircuit(len(self.quni))
             case 'mockqc': # for circuit illustration
@@ -1036,19 +1142,19 @@ class QuantumBase:
         Return:
             Counts of measurements (dict)
         """
-        compiled_qc = transpile(qc, self.backend)
+        compiled_qc = transpile(qc, self.backend) #currently uses the default Qiskit transpilation.
         job = self.backend.run(compiled_qc, shots=self.shots)
         result = job.result()
         counts = result.get_counts()
         return counts
     
-    def _step_meas_to_step_features(self, counts_step, features_step):
+    def _step_meas_to_step_features(self, counts_step, features_step,Ex=False):
         """Expectation values of measurements are appended to features_step.
 
         Args:
             counts_step (dict): counts which are shall be processed to features
             features_step (list): features are appended to this list
-
+            Ex: if True, gives expectation values; if False, they are linear shifts.
         Returns:
             features_step
         """
@@ -1064,6 +1170,7 @@ class QuantumBase:
                 prob_vec[0, pos] += prob
             features_step.append(prob_vec[self.preloading:])
         if self.ftype >= 1 or self.ftype == -1:
+            
             # single qubit expectations <z>
             # len(bitstring) = dimx * steps
             meas = np.array([
@@ -1074,12 +1181,17 @@ class QuantumBase:
                 for bitstring, count in counts_step.items()
             ])
             mean = np.sum(meas, axis=0) / shots_step # (steps*nmeas, )
-            mean = np.flip(mean) # counter reversed qiskit ordering
+            if nmeas==2: #Special thing...
+                mean = np.flip(mean) # counter reversed qiskit ordering
             # mean = s1d1, s1d2, ..., s2d1, s2d2, ...
             mean = mean.reshape(1, nmeas) # (steps, nmeas)
+            if Ex:
+                mean=1-2*mean
+            
             # outm = mean.reshape(nmeas, np.shape(angles)[0]).T
             features_step.append(mean[self.preloading:])
         if (self.ftype >= 2 or self.ftype == -1) and nmeas >= 2:
+            
             # two qubit expectations <zz>
             pairs = [p for p in itertools.combinations(range(nmeas), 2)]
             meas_vec = np.zeros([1, len(pairs)])
@@ -1088,11 +1200,13 @@ class QuantumBase:
                     if bitstring[p[0]] == bitstring[p[1]]:
                         # + if same sign
                         meas_vec[0, cp] += count / shots_step
-                    # else:
+                    else:
                         # - if opposite sign
-                    #     meas_vec[0, cp] -= count / shots_step
+                        if Ex:
+                            meas_vec[0, cp] -= count / shots_step
             features_step.append(meas_vec[self.preloading:])
         if (self.ftype >= 3 or self.ftype == -1) and nmeas >= 3:
+            
             # three qubit expectations <zzz>
             triples = [p for p in itertools.combinations(range(nmeas), 3)]
             meas_vec = np.zeros([1, len(triples)])
@@ -1106,7 +1220,8 @@ class QuantumBase:
                         meas_vec[0, ct] += count / shots_step
                     elif bit_triple in odd:
                         # - if opposite sign
-                        # meas_vec[0, ct] -= count / shots_step
+                        if Ex:
+                            meas_vec[0, ct] -= count / shots_step
                         pass
                     else:
                         raise Warning(f'Unknown bit_triple {bit_triple} {triple}')
@@ -1202,6 +1317,8 @@ class QuantumBase:
             ev_vec = ((ev_vec + 1) / 2).reshape(1, -1)
             features_step.append(ev_vec)
         return features_step
+    
+
 
 
 class StepwiseModelBase:

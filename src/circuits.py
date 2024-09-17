@@ -82,6 +82,235 @@ def ising_circuit(nqubits, t = 1, jmax = 1, h = .1, wmax = 10, rseed=0, mode=Non
             qc.rz(phi = t * (h + rng.uniform(low=wlow, high=whigh)), qubit=j)
     return qc
 
+def ising_circuit_natural(nqubits, t = 1, jmax = 1, h = .1, wmax = 10, rseed=0, mode=None, 
+                  random=True, jpositive=False, wpositive=False):
+    r"""Transverse field ising model, adjusted to fit our natural 2-qubit gate.
+    'Also has two possible ``adjustment methods``, to allow prevent the ZZ acting trivially.
+    
+    
+    .. math:: 
+        
+        H = J Z Z + (h + D) X \\
+
+        U = e^{-iHt} ~ e^{-iJZZt}e^{-i(h+W)Xt}  = RX(2(h+W)t)RZZ(2Jt) 
+
+    https://arxiv.org/pdf/2103.05348.pdf
+
+    Arguments:
+        nqubits (int): number of qubits
+        t (float): time in e^-iHt
+        h (float): fixed magnetic field
+        jmax (float): spin-spin coupling J in (-jmax, jmax)
+        jpositive (bool): J in (0, jmax)
+        wmax (float): onsite disorder strength W in (-wmax, wmax)
+        wpositive (bool): D in (0, jmax)
+        random (bool): if false, J=jmax and W=wmax
+        mode (str): 
+            | 'nn': Rxx on nearest neighbour, and Rz.
+            | 'up_ladder': Rxx ladder from qubit 0 to qubit max, and Rz.
+            | 'up_down_ladder': Rxx ladder from qubit 0 to qubit max, Rz, Rxx ladder from qubit max to qubit 0.
+            | else: Rxx on all pairwise connections, and Rz.
+        rseed (int): random seed for picking J, W
+        adjustment (str):
+            | 'Hadamard' : Performs a Hadamard on each gate at the start.
+            | 'Swap Order': Performs 1 qubit then two qubit gates.
+            | else -> Hadamard.
+    
+    Returns:
+        QuantumCircuit
+    """
+    qc =  QuantumCircuit(nqubits)
+    if random:
+        if jpositive:
+            jlow, jhigh = 0, jmax
+        else:
+            jlow, jhigh = -jmax, jmax
+        if wpositive:
+            wlow, whigh = 0, wmax
+        else:
+            wlow, whigh = -wmax, wmax
+    else:
+        jlow, jhigh = jmax, jmax
+        wlow, whigh = wmax, wmax
+    #
+    rng = Generator(PCG64(seed=rseed))
+    if mode == 'nn':
+        for j in range(0, nqubits):   
+            qc.rx(theta = t * (h + rng.uniform(low=wlow, high=whigh)), qubit=j)
+        for j in range(0, nqubits-1, 2):   
+            qc.rzz(theta = rng.uniform(low=jlow, high=jhigh) * t, qubit1=j, qubit2=j+1)
+        for j in range(1, nqubits-1, 2):
+            qc.rzz(theta = rng.uniform(low=jlow, high=jhigh) * t, qubit1=j, qubit2=j+1)
+
+    elif mode in ['up_ladder', 'ladder']:
+        for j in range(0, nqubits):
+            qc.rx(theta = t * (h + rng.uniform(low=wlow, high=whigh)), qubit=j)
+        for j in range(0, nqubits-1):
+            qc.rzz(theta = rng.uniform(low=jlow, high=jhigh) * t, qubit1=j, qubit2=j+1)
+            
+    elif mode == 'up_down_ladder':
+        for j in range(0, nqubits):
+            qc.rx(theta = t * (h + rng.uniform(low=wlow, high=whigh)), qubit=j)
+        for j in range(0,nqubits-1):
+            qc.rzz(theta = rng.uniform(low=jlow, high=jhigh) * t, qubit1=j, qubit2=j+1)
+        for j in range(0, nqubits):
+            qc.rx(theta = t * (h + rng.uniform(low=wlow, high=whigh)), qubit=j)
+        for j in range(nqubits-1, 0, -1):
+            qc.rzz(theta = rng.uniform(low=jlow, high=jhigh) * t, qubit1=j, qubit2=j-1)
+    else:
+        for j in range(nqubits):
+            qc.rx(theta = t * (h + rng.uniform(low=wlow, high=whigh)), qubit=j)
+        for j in range(nqubits):
+            for i in range(j+1, nqubits):
+                qc.rzz(theta = rng.uniform(low=jlow, high=jhigh) * t, qubit1=i, qubit2=j)
+            
+    return qc
+
+def ising_circuit_naturalH(nqubits, t = 1, jmax = 1, h = .1, wmax = 10, rseed=0, mode=None, 
+                  random=True, jpositive=False, wpositive=False):
+    r"""Transverse field ising model. Each unitary is sandwiched with a round of Hadamards, to avoid
+    trivial actions.
+    
+    .. math::
+        
+        H = J Z Z + (h + D) X \\
+
+        U = e^{-iHt} ~ e^{-iJZZt} e^{-i(h+W)Xt} = Rzz(2Jt) Rx(2(h+W)t)
+
+    https://arxiv.org/pdf/2103.05348.pdf
+
+    Arguments:
+        nqubits (int): number of qubits
+        t (float): time in e^-iHt
+        h (float): fixed magnetic field
+        jmax (float): spin-spin coupling J in (-jmax, jmax)
+        jpositive (bool): J in (0, jmax)
+        wmax (float): onsite disorder strength W in (-wmax, wmax)
+        wpositive (bool): D in (0, jmax)
+        random (bool): if false, J=jmax and W=wmax
+        mode (str): 
+            | 'nn': Rzz on nearest neighbour, and Rz.
+            | 'up_ladder': Rzz ladder from qubit 0 to qubit max, and Rz.
+            | 'up_down_ladder': Rzz ladder from qubit 0 to qubit max, Rx, Rzz ladder from qubit max to qubit 0.
+            | else: Rzz on all pairwise connections, and Rz.
+        rseed (int): random seed for picking J, W
+    
+    Returns:
+        QuantumCircuit
+    """
+    qc =  QuantumCircuit(nqubits)
+    if random:
+        if jpositive:
+            jlow, jhigh = 0, jmax
+        else:
+            jlow, jhigh = -jmax, jmax
+        if wpositive:
+            wlow, whigh = 0, wmax
+        else:
+            wlow, whigh = -wmax, wmax
+    else:
+        jlow, jhigh = jmax, jmax
+        wlow, whigh = wmax, wmax
+    #
+    rng = Generator(PCG64(seed=rseed))
+    for j in range(0, nqubits):
+        qc.h(qubit=j)
+
+    if mode == 'nn':
+        for j in range(0, nqubits-1, 2):   
+            qc.rzz(theta = rng.uniform(low=jlow, high=jhigh) * t, qubit1=j, qubit2=j+1)
+        for j in range(1, nqubits-1, 2):
+            qc.rzz(theta = rng.uniform(low=jlow, high=jhigh) * t, qubit1=j, qubit2=j+1)
+        for j in range(0, nqubits):   
+            qc.rx(theta = t * (h + rng.uniform(low=wlow, high=whigh)), qubit=j)
+    if mode == 'nnc': #closed loop.
+        for j in range(0, nqubits-1, 2):   
+            qc.rzz(theta = rng.uniform(low=jlow, high=jhigh) * t, qubit1=j, qubit2=j+1)
+        for j in range(1, nqubits-1, 2):
+            qc.rzz(theta = rng.uniform(low=jlow, high=jhigh) * t, qubit1=j, qubit2=j+1)
+        qc.rzz(theta = rng.uniform(low=jlow, high=jhigh) * t, qubit1=0, qubit2=nqubits-1)
+        for j in range(0, nqubits):   
+            qc.rx(theta = t * (h + rng.uniform(low=wlow, high=whigh)), qubit=j)
+    elif mode in ['up_ladder', 'ladder']:
+        for j in range(0, nqubits-1):
+            qc.rzz(theta = rng.uniform(low=jlow, high=jhigh) * t, qubit1=j, qubit2=j+1)
+            qc.rx(theta = t * (h + rng.uniform(low=wlow, high=whigh)), qubit=j)
+    elif mode == 'up_down_ladder':
+        for j in range(0, nqubits-1):
+            qc.rzz(theta = rng.uniform(low=jlow, high=jhigh) * t, qubit1=j, qubit2=j+1)
+            qc.rx(theta = t * (h + rng.uniform(low=wlow, high=whigh)), qubit=j)
+        for j in range(nqubits-1, 0, -1):
+            qc.rzz(theta = rng.uniform(low=jlow, high=jhigh) * t, qubit1=j, qubit2=j-1)
+    else:
+        for j in range(nqubits):
+            for i in range(j+1, nqubits):
+                qc.rzz(theta = rng.uniform(low=jlow, high=jhigh) * t, qubit1=i, qubit2=j)
+            qc.rx(theta = t * (h + rng.uniform(low=wlow, high=whigh)), qubit=j)
+
+    for j in range(0, nqubits):
+        qc.h(qubit=j)
+    return qc
+
+def native_circuit(nqubits, t = 1, jmax = 1, h = .1, wmax = 10, rseed=0, mode=None, 
+                  random=True, jpositive=False, wpositive=False):
+    qc =  QuantumCircuit(nqubits)
+    if random:
+        if jpositive:
+            jlow, jhigh = 0, jmax
+        else:
+            jlow, jhigh = -jmax, jmax
+        if wpositive:
+            wlow, whigh = 0, wmax
+        else:
+            wlow, whigh = -wmax, wmax
+    else:
+        
+        jlow, jhigh = jmax, jmax
+        wlow, whigh = wmax, wmax
+    #
+    rng = Generator(PCG64(seed=rseed))
+    for j in range(0, nqubits):
+        qc.h(qubit=j)
+
+    if mode == 'nn':
+        for j in range(0, nqubits-1, 2):   
+            qc.cz( control_qubit=j, target_qubit=j+1)
+        for j in range(1, nqubits-1, 2):
+            qc.cz( control_qubit=j, target_qubit=j+1)
+        for j in range(0, nqubits):   
+            qc.rx(theta = t * (h + rng.uniform(low=wlow, high=whigh)), qubit=j)
+    if mode == 'nnc': #closed loop.
+        #print(wlow,whigh)
+        for j in range(0, nqubits-1, 2):   
+            qc.cz( control_qubit=j, target_qubit=j+1)
+        for j in range(1, nqubits-1, 2):
+            qc.cz( control_qubit=j, target_qubit=j+1)
+        qc.cz(control_qubit=nqubits-1, target_qubit=0)
+        for j in range(0, nqubits):
+            thetac=t * (h + rng.uniform(low=wlow, high=whigh))
+            #print(thetac)   
+            qc.rx(theta = thetac, qubit=j)
+        
+    elif mode in ['up_ladder', 'ladder']:
+        for j in range(0, nqubits-1):
+            qc.cz( control_qubit=j, target_qubit=j+1)
+            qc.rx(theta = t * (h + rng.uniform(low=wlow, high=whigh)), qubit=j)
+    elif mode == 'up_down_ladder':
+        for j in range(0, nqubits-1):
+            qc.cz( control_qubit=j, target_qubit=j+1)
+            qc.rx(theta = t * (h + rng.uniform(low=wlow, high=whigh)), qubit=j)
+        for j in range(nqubits-1, 0, -1):
+            qc.cz( control_qubit=j, target_qubit=j-1)
+    else:
+        for j in range(nqubits):
+            for i in range(j+1, nqubits):
+                qc.cz( control_qubit=i, target_qubit=j)
+            qc.rx(theta = t * (h + rng.uniform(low=wlow, high=whigh)), qubit=j)
+
+    for j in range(0, nqubits):
+        qc.h(qubit=j)
+    return qc
+
 
 def jiri_circuit():  
     """For 3 qubits.

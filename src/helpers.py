@@ -4,6 +4,7 @@
 """
 import numpy as np
 import scipy.stats as stats 
+from sklearn.preprocessing import StandardScaler
 
 
 def moving_average(x, w):
@@ -171,6 +172,27 @@ def unnormalize(data, dmin, dmax):
         normalized.append(normalized_episode)
     return normalized 
 
+def unstandardize(data, dmin, dmax,doldmin,doldmax):
+    """Reverse scaling. (doldmin, doldmax) -> (dmin, dmax).
+
+    Args:
+        data: list[np.array] (episodes, steps, dims)
+        dmin, dmax: previous data range we want to return to
+    
+    Returns:
+        unnormalized_data: list[np.array] (episodes, steps, dims)
+    """
+    dmin = np.asarray(dmin)
+    dmax = np.asarray(dmax)
+    oldmin = np.asarray(doldmin)
+    oldmax = np.asarray(doldmax)
+    normalized = []
+    for episode in data:
+        # normalize the episode
+        normalized_episode = (episode - oldmin / (oldmax - oldmin)) * (dmax - dmin) + dmin
+        normalized.append(normalized_episode)
+    return normalized 
+
 def standardize(data): 
     r"""Standardizing a dataset involves rescaling the distribution of values so 
     that the mean of observed values is 0 and the standard deviation is 1.
@@ -190,7 +212,7 @@ def standardize(data):
         standardized_data: list[np.array] (episodes, steps, dims)
     """
     # train the standardization on all episodes
-    scaler = stats.StandardScaler()
+    scaler = StandardScaler()
     scaler = scaler.fit(np.vstack(data))
     print('Mean: %f, StandardDeviation: %f' % (scaler.mean_, np.sqrt(scaler.var_)))
     # standardization the dataset and print the first 5 rows

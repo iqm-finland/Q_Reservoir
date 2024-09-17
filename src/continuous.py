@@ -30,7 +30,7 @@ from src.helpers import weighted_gate_count, unnormalize
 module_path = pathlib.Path(__file__).parent.parent.resolve().__str__()
 
 class QContinuousRC(PredictionModelBase, QuantumBase):
-    r"""Continous (online) reservoir.
+    """Continous (online) reservoir.
 
     Takes all actions x(t) as given and constructs one circuit spanning all timesteps t.
     Inputs current x(t) and partially measures the circuit at each step t.
@@ -436,6 +436,7 @@ class QContinuousRC(PredictionModelBase, QuantumBase):
             ytrue_nonorm = np.vstack([y[self.washout_eff:] for y in self.data.yval_nonorm]),
         )
         return self.yval, self.fval
+    
 
 
 class NaivePredictor(PredictionModelBase):

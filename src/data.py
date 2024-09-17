@@ -118,7 +118,7 @@ class DataSource:
             self.ytype = 'treactor'
         if self.xtype == 'random_narma':
             self.xtype = 'narma_random'
-        if self.ytype not in ['narma', 'narma_random', 'narma_smooth', 'stm']:
+        if self.ytype not in ['narma', 'narma_random', 'narma_smooth', 'stm','narma2']:
             self.memory = 0
         return self
 
@@ -199,6 +199,10 @@ class DataSource:
             self.xmax = [0.5 for _ in range(self.dimx)]
             self.dimx = self.dimy
             x = self._x_narma_smooth()
+        elif self.xtype == 'narma_seq': 
+            self.xmax = [0.5 for _ in range(self.dimx)]
+            self.dimx = self.dimy
+            x = self._x_narma_seq()
         else:
             raise Warning(f'Invalid x_type {self.xtype}')
         # y
@@ -233,6 +237,11 @@ class DataSource:
                 y = self._y_narma(n=self.memory, xs=x)
             self.ymin = [min(0, np.min(col)) for col in np.vstack(y).T]
             self.ymax = [max(1, np.max(col)) for col in np.vstack(y).T]
+        elif self.ytype in ['narma2']: 
+            if self.xtype != self.ytype: # y already set
+                y = self._y_narma2(n=self.memory, xs=x)
+            self.ymin = [min(0, np.min(col)) for col in np.vstack(y).T]
+            self.ymax = [max(1, np.max(col)) for col in np.vstack(y).T]
         else:
             raise Warning(f'Invalid y_type {self.ytype}')
         return x, y
@@ -257,18 +266,55 @@ class DataSource:
                     self.xmax = [1 for _ in range(self.dimx)]
                 assert np.all(np.array([np.max(xe) for xe in xnorm]) <= np.asarray(self.xmax)), f'{[np.max(xe) for xe in x]}'
                 assert np.all(np.array([np.min(xe) for xe in xnorm]) >= np.asarray(self.xmin)), f'{[np.min(xe) for xe in x]}'
+            #    if (self.xmin_nonorm == None) and (self.xmax_nonorm == None):  # Updatesd version..
+            #        self.xmin_nonorm = [np.min(col) for col in np.vstack(x).T]
+            #        self.xmax_nonorm = [np.max(col) for col in np.vstack(x).T]
+            #    
+#
+#                if np.allclose(self.xmin, np.zeros(np.shape(self.xmin))) and np.allclose(self.xmax, np.full(np.shape(self.xmax), 1)):
+#                    xnorm = x
+#                else:
+#                    xnorm = normalize(x, self.xmin, self.xmax)
+#                    self.xmin = [0 for _ in range(self.dimx)]
+#                    self.xmax = [1 for _ in range(self.dimx)]
+#                assert np.all(np.array([np.max(xe) for xe in xnorm]) <= np.asarray(self.xmax)), f'{[np.max(xe) for xe in x]}'
+#                assert np.all(np.array([np.min(xe) for xe in xnorm]) >= np.asarray(self.xmin)), f'{[np.min(xe) for xe in x]}'
             case 'std':
+                if (self.xmin_nonorm == None) and (self.xmax_nonorm == None):
+                    self.xmin_nonorm = [np.min(col) for col in np.vstack(x).T]
+                    self.xmax_nonorm = [np.max(col) for col in np.vstack(x).T]
+                
                 xnorm = standardize(x)
-                self.xmin = [np.min(col) for col in np.vstack(x).T]
-                self.xmax = [np.max(col) for col in np.vstack(x).T]
+                self.xmin = [np.min(col) for col in np.vstack(xnorm).T]
+                self.xmax = [np.max(col) for col in np.vstack(xnorm).T]
+            case 'scale':
+                self.xmin_nonorm = [np.min(col) for col in np.vstack(x).T]
+                self.xmax_nonorm = [np.max(col) for col in np.vstack(x).T]
+                xnorm = normalize(x,self.xmin_nonorm, self.xmax_nonorm)
+                self.xmin = [np.min(col) for col in np.vstack(xnorm).T]
+                self.xmax = [np.max(col) for col in np.vstack(xnorm).T]
+                
             case 'none':
                 xnorm = x
+                self.xmin_nonorm, self.xmax_nonorm = self.xmin, self.xmax
             case _:
                 raise Warning('Invalid normx')
         # normalize y
         self.ymin_nonorm, self.ymax_nonorm = self.ymin, self.ymax
         match self.ynorm:
             case 'norm':
+#                if (self.ymin_nonorm == None) and (self.ymax_nonorm == None):
+#                    self.ymin_nonorm = [np.min(col) for col in np.vstack(y).T]
+#                    self.ymax_nonorm = [np.max(col) for col in np.vstack(y).T]
+#                
+#                if np.allclose(self.ymin, np.zeros(np.shape(self.ymin))) and np.allclose(self.ymax, np.full(np.shape(self.ymax), 1)):
+#                    ynorm = y
+#                else:
+#                    ynorm = normalize(y, self.ymin, self.ymax)
+#                    self.ymin = [0 for _ in range(self.dimy)]
+#                    self.ymax = [1 for _ in range(self.dimy)]
+#                assert np.all(np.array([np.max(ye) for ye in ynorm]) <= np.asarray(self.ymax)), f'{[np.max(ye) for ye in y]}'
+#                assert np.all(np.array([np.min(ye) for ye in ynorm]) >= np.asarray(self.ymin)), f'{[np.min(ye) for ye in y]}'
                 if np.allclose(self.ymin, np.zeros(np.shape(self.ymin))) and np.allclose(self.ymax, np.full(np.shape(self.ymax), 1)):
                     ynorm = y
                 else:
@@ -277,10 +323,21 @@ class DataSource:
                     self.ymax = [1 for _ in range(self.dimy)]
                 assert np.all(np.array([np.max(ye) for ye in ynorm]) <= np.asarray(self.ymax)), f'{[np.max(ye) for ye in y]}'
                 assert np.all(np.array([np.min(ye) for ye in ynorm]) >= np.asarray(self.ymin)), f'{[np.min(ye) for ye in y]}'
+
+ 
             case 'std':
+                if (self.ymin_nonorm == None) and (self.ymax_nonorm == None):
+                    self.ymin_nonorm = [np.min(col) for col in np.vstack(y).T]
+                    self.ymax_nonorm = [np.max(col) for col in np.vstack(y).T]
                 ynorm = standardize(y)
-                self.ymin = [np.min(col) for col in np.vstack(y).T]
-                self.ymax = [np.max(col) for col in np.vstack(y).T]
+                self.ymin = [np.min(col) for col in np.vstack(ynorm).T]
+                self.ymax = [np.max(col) for col in np.vstack(ynorm).T]
+            case 'scale':
+                self.ymin_nonorm = [np.min(col) for col in np.vstack(y).T]
+                self.ymax_nonorm = [np.max(col) for col in np.vstack(y).T]
+                ynorm = normalize(y,self.ymin_nonorm, self.ymax_nonorm)
+                self.ymin = [np.min(col) for col in np.vstack(ynorm).T]
+                self.ymax = [np.max(col) for col in np.vstack(ynorm).T]
             case 'none':
                 ynorm = y
             case _:
@@ -383,6 +440,41 @@ class DataSource:
                     + 1)
             xs.append(xe)
         return xs
+    
+    def _x_narma_seq(self):  
+            """Smooth input for NARMA task, but always begins at t =0 
+
+            https://arxiv.org/pdf/2211.02612.pdf
+
+            Returns:
+                x: list[np.array] (episodes, steps, dim_x)
+            """
+            rng = Generator(PCG64(seed=self.rseed_data))
+            xs = [] 
+            a, b, c, p = 2.11, 3.73, 4.11, 100
+            for ep in range(self.nepisodes_tt):
+                # xe = np.zeros(shape=(self.steps, 1))
+                # for t in range(self.steps): 
+                #     xe[t] = 0.1 * (rng.normal(loc=1., scale=0.01) * (
+                #         np.sin(2*np.pi * a * t / p * rng.normal(loc=1., scale=0.1)) \
+                #         * np.sin(2*np.pi*b*t/p *rng.normal(loc=1., scale=0.1)) \
+                #         * np.sin(2*np.pi*c*t/p *rng.normal(loc=1., scale=0.1)) \
+                #         + rng.normal(loc=1., scale=0.01)))
+                t_start = self.steps*ep
+                tsteps = np.arange(t_start, t_start + self.steps, 1, dtype=int)
+                # xe = 0.1 * (np.sin(2 * np.pi * a * tsteps / p) \
+                #     * np.sin(2 * np.pi * b * tsteps / p) \
+                #     * np.sin(2 * np.pi * c * tsteps / p) \
+                #     + 1)
+                xe = np.zeros(shape=(self.steps, 1))
+                for tstep, t in enumerate(tsteps):
+                    xe[tstep] = 0.1 * (np.sin(2 * np.pi * a * t / p) \
+                        * np.sin(2 * np.pi * b * t / p) \
+                        * np.sin(2 * np.pi * c * t / p) \
+                        + 1)
+                xs.append(xe)
+            return xs
+
 
     def _x_narma_random(self): 
         """Random input for NARMA task drawn from (0, 0.5).
@@ -423,6 +515,51 @@ class DataSource:
                         (a * ye[t-1]) \
                         + (b * ye[t-1, :] * np.sum(ye[t-n:t], axis=0)) \
                         + (c * xe[t-1] * xe[t-n]) \
+                        + d
+                except Exception as e:
+                    print(e)
+                    print(
+                        f"""
+                        {ye[t]} = 
+                        (a * {ye[t-1]}) 
+                        + (b * {ye[t-1, :]} * {np.sum(ye[t-n:t], axis=0)}) 
+                        + (c * {xe[t-1]} * {xe[t-n]}) 
+                        + d
+                        sum: {ye[t-n:t]}
+                        """
+                    )
+            ys.append(ye[n:])
+        assert np.shape(xs[0])[0] == self.steps, f'{np.shape(xs[0])}, {self.steps}'
+        assert np.shape(ys[0])[0] == self.steps, f'{np.shape(ys[0])}, {self.steps}'
+        return ys
+    
+    def _y_narma2(self, xs, n: int = 2):
+        """Nonlinear autoregressive moving average task. Taken from tutorial.
+
+
+        Args:
+            xs (list[np.array]): (episodes, steps, dim_x)
+            n (int): correlation to past ~ memory length.
+        
+        Returns:
+            y (list[np.array]): (episodes, steps, dim_y)
+        """   
+        # y 
+        a, b, c, d = 0.4, 0.4, 0.6, 0.1
+        ystart=0.195
+        ys = []
+        for xe in xs: # loop over episodes
+            # xe[:n] = 0
+            xe = np.vstack([np.zeros((n, self.dimx)), xe])
+            ye = np.zeros(shape=(self.steps+n, self.dimy))
+            ye[0:2,:]=ystart
+            # https://arxiv.org/pdf/2211.02612.pdf
+            for t in range(n, self.steps+n): # (steps, dimx)
+                try:
+                    ye[t] = \
+                        (a * ye[t-1]) \
+                        + (b * ye[t-1, :] * ye[t-2, :]) \
+                        + (c * xe[t-1]**3) \
                         + d
                 except Exception as e:
                     print(e)

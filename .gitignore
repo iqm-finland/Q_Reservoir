@@ -1,0 +1,12 @@
+# ignore files created via an executor:
+**.json
+**.qpy
+notebooks/*_circuits*
+notebooks/*_train*
+notebooks/*_val*
+**/Testing_Exa.ipynb
+**/Testing_Experiment_Class.ipynb
+**.pkl
+tests/*_circuits*
+tests/*_train*
+tests/*_val*
